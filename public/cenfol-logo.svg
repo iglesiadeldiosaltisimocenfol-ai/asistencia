@@ -1,0 +1,10 @@
+<svg width="200" height="200" viewBox="0 0 200 200" fill="none" xmlns="http://www.w3.org/2000/svg">
+  <circle cx="100" cy="100" r="92" fill="#FFFFFF" />
+  <circle cx="100" cy="100" r="88" stroke="#8C98A4" stroke-width="3.2" fill="none" />
+  <!-- Pluma inferior / cola en rojo carmesí / borgoña -->
+  <path d="M 98 152 C 88 155, 78 157, 72 153 C 74 148, 80 142, 92 136 C 96 142, 98 148, 98 152 Z" fill="#832034" />
+  <!-- Ala principal grande en Azul Marino / Pizarra Oscuro -->
+  <path d="M 94 136 C 82 124, 62 98, 56 68 C 51 44, 58 24, 82 14 C 87 28, 92 46, 88 64 C 84 80, 77 92, 85 108 C 92 120, 102 128, 105 136 C 101 137, 97 137, 94 136 Z" fill="#283747" />
+  <!-- Cuerpo y cabeza de la paloma mirando hacia la derecha en Gris Plateado -->
+  <path d="M 103 136 C 114 128, 126 112, 124 94 C 122 80, 116 74, 118 64 C 122 60, 128 62, 134 69 C 130 78, 128 88, 128 98 C 128 116, 118 138, 98 150 C 102 145, 104 140, 103 136 Z" fill="#9AA5B1" />
+</svg>

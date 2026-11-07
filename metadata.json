@@ -1,0 +1,8 @@
+{
+  "name": "Remix: Registro de Asistencia Dominical",
+  "description": "Aplicación para llevar el registro de asistencia de una reunión dominical con sincronización en Google Sheets, estadísticas de asistencia por género y alertas de inasistencia.",
+  "requestFramePermissions": [],
+  "majorCapabilities": [
+    "MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"
+  ]
+}

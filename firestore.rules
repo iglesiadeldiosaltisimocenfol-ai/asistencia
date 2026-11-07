@@ -1,0 +1,63 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+    // Default deny
+    match /{document=**} {
+      allow read, write: if false;
+    }
+
+    function isSignedIn() {
+      return request.auth != null;
+    }
+
+    function isValidId(id) {
+      return id is string && id.size() <= 128;
+    }
+
+    // Colección de Miembros de la Iglesia
+    match /members/{memberId} {
+      allow read: if true;
+      allow create, update: if isValidId(memberId) && 
+        request.resource.data.name is string && 
+        request.resource.data.name.size() <= 150;
+      allow delete: if isValidId(memberId);
+    }
+
+    // Colección de Registros de Asistencia
+    match /attendance/{attendanceId} {
+      allow read: if true;
+      allow create, update: if isValidId(attendanceId) && 
+        request.resource.data.date is string && 
+        request.resource.data.presentIds is list;
+      allow delete: if isValidId(attendanceId);
+    }
+
+    // Colección de Tesorería (Diezmos, Ofrendas, Egresos)
+    match /treasury/{recordId} {
+      allow read: if true;
+      allow create, update: if isValidId(recordId) && 
+        request.resource.data.type in ['diezmo', 'ofrenda', 'donacion', 'gasto'] && 
+        request.resource.data.amount is number;
+      allow delete: if isValidId(recordId);
+    }
+
+    // Colección de Usuarios del Sistema
+    match /users/{userId} {
+      allow read: if true;
+      allow create, update: if isValidId(userId) && 
+        request.resource.data.email is string && 
+        request.resource.data.role in ['admin', 'tesorero', 'lider_asistencia'];
+      allow delete: if isValidId(userId);
+    }
+
+    // Configuración compartida de la iglesia (Google Sheets ID compartido en tiempo real)
+    match /settings/{settingId} {
+      allow read, write: if true;
+    }
+
+    // Verificación de conexión en línea
+    match /test/connection {
+      allow read, write: if true;
+    }
+  }
+}

@@ -1,0 +1,180 @@
+{
+  "entities": {
+    "Member": {
+      "title": "Member",
+      "description": "Miembro o asistente de la congregación de la iglesia",
+      "type": "object",
+      "properties": {
+        "id": {
+          "type": "string",
+          "description": "Identificador único del miembro"
+        },
+        "name": {
+          "type": "string",
+          "description": "Nombre completo del miembro",
+          "maxLength": 150
+        },
+        "phone": {
+          "type": "string",
+          "description": "Número telefónico o celular",
+          "maxLength": 30
+        },
+        "email": {
+          "type": "string",
+          "description": "Correo electrónico",
+          "maxLength": 100
+        },
+        "address": {
+          "type": "string",
+          "description": "Dirección de residencia",
+          "maxLength": 200
+        },
+        "category": {
+          "type": "string",
+          "enum": ["Hombres", "Mujeres", "Niños", "Niñas"],
+          "description": "Categoría demográfica"
+        },
+        "active": {
+          "type": "boolean",
+          "description": "Estado activo o inactivo"
+        },
+        "createdAt": {
+          "type": "string",
+          "description": "Fecha de registro YYYY-MM-DD"
+        }
+      },
+      "required": ["id", "name", "category", "active", "createdAt"]
+    },
+    "Attendance": {
+      "title": "Attendance",
+      "description": "Registro de asistencia dominical de una fecha específica",
+      "type": "object",
+      "properties": {
+        "date": {
+          "type": "string",
+          "description": "Fecha del domingo en formato YYYY-MM-DD",
+          "pattern": "^[0-9]{4}-[0-9]{2}-[0-9]{2}$"
+        },
+        "presentIds": {
+          "type": "array",
+          "description": "Lista de IDs de miembros presentes"
+        }
+      },
+      "required": ["date", "presentIds"]
+    },
+    "FinancialRecord": {
+      "title": "FinancialRecord",
+      "description": "Registro de diezmo, ofrenda, donación o gasto de la tesorería",
+      "type": "object",
+      "properties": {
+        "id": {
+          "type": "string",
+          "description": "Identificador del registro financiero"
+        },
+        "date": {
+          "type": "string",
+          "description": "Fecha del movimiento",
+          "pattern": "^[0-9]{4}-[0-9]{2}-[0-9]{2}$"
+        },
+        "type": {
+          "type": "string",
+          "enum": ["diezmo", "ofrenda", "donacion", "gasto"],
+          "description": "Tipo de movimiento contable"
+        },
+        "amount": {
+          "type": "number",
+          "description": "Monto en moneda local"
+        },
+        "description": {
+          "type": "string",
+          "description": "Concepto o detalle del movimiento",
+          "maxLength": 300
+        },
+        "memberId": {
+          "type": "string",
+          "description": "ID del miembro aportante opcional"
+        },
+        "memberName": {
+          "type": "string",
+          "description": "Nombre del miembro aportante opcional"
+        },
+        "paymentMethod": {
+          "type": "string",
+          "description": "Método de pago (Efectivo, Transferencia, etc.)"
+        },
+        "registeredBy": {
+          "type": "string",
+          "description": "Nombre de quien registró el movimiento"
+        },
+        "createdAt": {
+          "type": "string",
+          "description": "Fecha de creación"
+        }
+      },
+      "required": ["id", "date", "type", "amount", "description", "paymentMethod", "registeredBy", "createdAt"]
+    },
+    "AppUser": {
+      "title": "AppUser",
+      "description": "Usuario autorizado con rol en la aplicación",
+      "type": "object",
+      "properties": {
+        "id": {
+          "type": "string",
+          "description": "Identificador del usuario"
+        },
+        "name": {
+          "type": "string",
+          "description": "Nombre completo del usuario",
+          "maxLength": 150
+        },
+        "email": {
+          "type": "string",
+          "description": "Correo electrónico",
+          "maxLength": 100
+        },
+        "phone": {
+          "type": "string",
+          "description": "Teléfono de contacto",
+          "maxLength": 30
+        },
+        "role": {
+          "type": "string",
+          "enum": ["admin", "tesorero", "lider_asistencia"],
+          "description": "Rol asignado en el sistema"
+        },
+        "password": {
+          "type": "string",
+          "description": "Contraseña de acceso",
+          "maxLength": 100
+        },
+        "active": {
+          "type": "boolean",
+          "description": "Estado activo o inactivo"
+        },
+        "createdAt": {
+          "type": "string",
+          "description": "Fecha de alta"
+        }
+      },
+      "required": ["id", "name", "email", "role", "active", "createdAt"]
+    }
+  },
+  "firestore": {
+    "/members/{memberId}": {
+      "schema": "Member",
+      "description": "Colección de miembros de la congregación"
+    },
+    "/attendance/{attendanceId}": {
+      "schema": "Attendance",
+      "description": "Historial de asistencia por fecha"
+    },
+    "/treasury/{recordId}": {
+      "schema": "FinancialRecord",
+      "description": "Movimientos de tesorería y finanzas"
+    },
+    "/users/{userId}": {
+      "schema": "AppUser",
+      "description": "Usuarios y colaboradores del sistema"
+    }
+  }
+}
