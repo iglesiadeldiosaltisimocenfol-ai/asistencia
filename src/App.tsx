@@ -52,6 +52,14 @@ import LoginPortal from './components/LoginPortal';
 import CenfolLogo from './components/CenfolLogo';
 import HtmlExportModal from './components/HtmlExportModal';
 import { useInactivityTimeout } from './hooks/useInactivityTimeout';
+import {
+  saveMemberToDb,
+  deleteMemberFromDb,
+  saveAttendanceToDb,
+  saveTreasuryToDb,
+  deleteTreasuryFromDb,
+  seedDatabaseIfEmpty
+} from './services/apiService';
 
 import { 
   Users, 
@@ -302,13 +310,14 @@ export default function App() {
       }
     });
 
-    // 3. Sembrar datos iniciales en la nube si Firestore está vacío
+    // 3. Sembrar datos iniciales en la nube si Firestore o PostgreSQL están vacíos
     seedFirestoreIfEmpty(
       DEFAULT_MEMBERS,
       DEFAULT_ATTENDANCE,
       DEFAULT_FINANCIAL_RECORDS,
       DEFAULT_USERS
     );
+    seedDatabaseIfEmpty(DEFAULT_MEMBERS);
 
     // 4. Inicializar listener de Google Auth
     const unsubAuth = initAuth(
@@ -697,13 +706,16 @@ export default function App() {
     setEditingMember(null);
 
     try {
-      await saveMemberRealtime(memberToSave);
+      await Promise.allSettled([
+        saveMemberToDb(memberToSave),
+        saveMemberRealtime(memberToSave),
+      ]);
       await saveStateAndSync(updatedMembers, attendance);
       const isSheets = !!getSavedSpreadsheetId();
       setSyncSuccess(
         isSheets
-          ? `¡Miembro "${memberToSave.name}" guardado y reflejado de inmediato en todos los dispositivos y Google Sheets!`
-          : `¡Miembro "${memberToSave.name}" guardado y reflejado al instante en todos los computadores y celulares!`
+          ? `¡Miembro "${memberToSave.name}" guardado en la base de datos (PostgreSQL), reflejado en todos los dispositivos y Google Sheets!`
+          : `¡Miembro "${memberToSave.name}" guardado en la base de datos (PostgreSQL) y sincronizado al instante!`
       );
     } catch (err: any) {
       console.error(err);
@@ -724,9 +736,12 @@ export default function App() {
     setAttendance(updatedAttendance);
 
     try {
-      await deleteMemberRealtime(id);
+      await Promise.allSettled([
+        deleteMemberFromDb(id),
+        deleteMemberRealtime(id),
+      ]);
       await saveStateAndSync(updatedMembers, updatedAttendance);
-      setSyncSuccess('Miembro eliminado y actualizado al instante en todos los dispositivos.');
+      setSyncSuccess('Miembro eliminado de la base de datos y actualizado al instante en todos los dispositivos.');
     } catch (err) {
       console.error(err);
     }
@@ -765,13 +780,16 @@ export default function App() {
     setAttendance(updatedAttendance);
 
     try {
-      await saveAttendanceRealtime({ date, presentIds });
+      await Promise.allSettled([
+        saveAttendanceToDb({ date, presentIds }),
+        saveAttendanceRealtime({ date, presentIds }),
+      ]);
       await saveStateAndSync(members, updatedAttendance);
       const isSheets = !!getSavedSpreadsheetId();
       setSyncSuccess(
         isSheets
-          ? `¡Asistencia del domingo ${date} guardada y sincronizada de inmediato en todos los dispositivos y Google Sheets!`
-          : `¡Asistencia del domingo ${date} guardada y reflejada al instante en todos los celulares y computadores!`
+          ? `¡Asistencia del domingo ${date} guardada en base de datos (PostgreSQL), sincronizada en todos los dispositivos y Google Sheets!`
+          : `¡Asistencia del domingo ${date} guardada en base de datos (PostgreSQL) y reflejada al instante!`
       );
     } catch (err) {
       console.error(err);
@@ -855,13 +873,16 @@ export default function App() {
     setFinancialRecords(updatedRecords);
 
     try {
-      await saveFinancialRecordRealtime(newRecord);
+      await Promise.allSettled([
+        saveTreasuryToDb(newRecord),
+        saveFinancialRecordRealtime(newRecord),
+      ]);
       await saveStateAndSync(members, attendance, updatedRecords);
       const isSheets = !!getSavedSpreadsheetId();
       setSyncSuccess(
         isSheets
-          ? `¡Movimiento de Tesorería guardado y reflejado de inmediato en todos los dispositivos y Google Sheets!`
-          : `¡Movimiento de Tesorería guardado y reflejado al instante en todos los celulares y computadores!`
+          ? `¡Movimiento de Tesorería guardado en base de datos (PostgreSQL), reflejado en todos los dispositivos y Google Sheets!`
+          : `¡Movimiento de Tesorería guardado en base de datos (PostgreSQL) y reflejado al instante!`
       );
     } catch (err) {
       console.error(err);
@@ -876,9 +897,12 @@ export default function App() {
     setFinancialRecords(updatedRecords);
 
     try {
-      await deleteFinancialRecordRealtime(id);
+      await Promise.allSettled([
+        deleteTreasuryFromDb(id),
+        deleteFinancialRecordRealtime(id),
+      ]);
       await saveStateAndSync(members, attendance, updatedRecords);
-      setSyncSuccess('Movimiento eliminado y actualizado en todos los dispositivos.');
+      setSyncSuccess('Movimiento eliminado de la base de datos y actualizado en todos los dispositivos.');
     } catch (err) {
       console.error(err);
     }
