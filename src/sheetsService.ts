@@ -105,13 +105,14 @@ const initializeSheetHeaders = async (spreadsheetId: string, accessToken: string
     valueInputOption: 'USER_ENTERED',
     data: [
       {
-        range: 'Miembros!A1:H1',
+        range: 'Miembros!A1:I1',
         values: [
           [
             'ID de Miembro',
             'Nombre Completo',
             'Celular',
             'Dirección',
+            'Barrio',
             'Correo Electrónico',
             'Categoría (Género/Edad)',
             'Estado',
@@ -182,14 +183,15 @@ export const syncMembersToSheets = async (
   members: Member[]
 ): Promise<void> => {
   // Primero limpiamos los datos antiguos (excepto la cabecera) para evitar filas fantasmas si la lista disminuyó
-  await clearSheetRange(spreadsheetId, accessToken, 'Miembros!A2:H1000');
+  await clearSheetRange(spreadsheetId, accessToken, 'Miembros!A2:I1000');
 
   const rows = members.map((m) => [
     m.id || '',
     m.name || '',
     m.phone || '',
-    m.email || '',
     m.address || '',
+    m.neighborhood || '',
+    m.email || '',
     m.category || 'Hombres',
     m.active ? 'Activo' : 'Inactivo',
     m.createdAt || '',
@@ -198,7 +200,7 @@ export const syncMembersToSheets = async (
   if (rows.length === 0) return;
 
   const response = await fetch(
-    `https://sheets.googleapis.com/v4/spreadsheets/${spreadsheetId}/values/Miembros!A2:H${rows.length + 1}?valueInputOption=USER_ENTERED`,
+    `https://sheets.googleapis.com/v4/spreadsheets/${spreadsheetId}/values/Miembros!A2:I${rows.length + 1}?valueInputOption=USER_ENTERED`,
     {
       method: 'PUT',
       headers: {
@@ -373,7 +375,7 @@ export const loadDataFromSheets = async (
 }> => {
   // 1. Cargar pestaña de Miembros
   const resMembers = await fetch(
-    `https://sheets.googleapis.com/v4/spreadsheets/${spreadsheetId}/values/Miembros!A2:H1000`,
+    `https://sheets.googleapis.com/v4/spreadsheets/${spreadsheetId}/values/Miembros!A2:I1000`,
     {
       headers: { Authorization: `Bearer ${accessToken}` },
     }
@@ -383,16 +385,20 @@ export const loadDataFromSheets = async (
   if (resMembers.ok) {
     const data = await resMembers.json();
     if (data.values && Array.isArray(data.values)) {
-      members = data.values.map((row: any[]) => ({
-        id: row[0] || '',
-        name: row[1] || '',
-        phone: row[2] || '',
-        email: row[4] || '',
-        address: row[3] || '',
-        category: (row[5] as any) || 'Hombres',
-        active: row[6] === 'Activo' || row[6] === 'Sí' || !row[6],
-        createdAt: row[7] || new Date().toISOString().split('T')[0],
-      })).filter((m) => m.id && m.name);
+      members = data.values.map((row: any[]) => {
+        const isNineCols = row.length >= 9;
+        return {
+          id: row[0] || '',
+          name: row[1] || '',
+          phone: row[2] || '',
+          address: row[3] || '',
+          neighborhood: isNineCols ? (row[4] || '') : '',
+          email: isNineCols ? (row[5] || '') : (row[4] || ''),
+          category: ((isNineCols ? row[6] : row[5]) as any) || 'Hombres',
+          active: (isNineCols ? row[7] : row[6]) === 'Activo' || (isNineCols ? row[7] : row[6]) === 'Sí' || !(isNineCols ? row[7] : row[6]),
+          createdAt: (isNineCols ? row[8] : row[7]) || new Date().toISOString().split('T')[0],
+        };
+      }).filter((m) => m.id && m.name);
     }
   }
 

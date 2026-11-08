@@ -5,7 +5,7 @@
 
 import React, { useState, useMemo } from 'react';
 import { Member, AttendanceRecord, MemberCategory } from '../types';
-import { Search, Filter, Edit, Trash2, CheckCircle, XCircle, AlertTriangle, UserPlus, Phone, MapPin, Mail, Calendar, FileText, Table, Download, FileSpreadsheet } from 'lucide-react';
+import { Search, Filter, Edit, Trash2, CheckCircle, XCircle, AlertTriangle, UserPlus, Phone, MapPin, Mail, Calendar, FileText, Table, Download, FileSpreadsheet, Building2, Plus } from 'lucide-react';
 import ReportExportModal from './ReportExportModal';
 import { exportMembersToPdf, exportMembersToExcel } from '../utils/memberReports';
 
@@ -39,6 +39,7 @@ export default function MemberList({
   const [searchTerm, setSearchTerm] = useState('');
   const [selectedCategory, setSelectedCategory] = useState<string>('Todos');
   const [selectedStatus, setSelectedStatus] = useState<string>('Todos');
+  const [selectedNeighborhood, setSelectedNeighborhood] = useState<string>('Todos');
   const [isExportModalOpen, setIsExportModalOpen] = useState(false);
   const [isExportingQuick, setIsExportingQuick] = useState(false);
 
@@ -115,24 +116,42 @@ export default function MemberList({
     return map;
   }, [attendance, members, currentMonthStr]);
 
-  // Filtrado de miembros
+  // Barrios únicos disponibles en la congregación
+  const availableNeighborhoods = useMemo(() => {
+    const set = new Set<string>();
+    members.forEach((m) => {
+      if (m.neighborhood && m.neighborhood.trim()) {
+        set.add(m.neighborhood.trim());
+      }
+    });
+    return Array.from(set).sort((a, b) => a.localeCompare(b));
+  }, [members]);
+
+  // Filtrado de miembros con soporte para búsqueda de Barrio
   const filteredMembers = useMemo(() => {
     return members.filter((m) => {
+      const lower = searchTerm.toLowerCase().trim();
       const matchesSearch =
-        m.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-        m.phone.includes(searchTerm) ||
-        m.email.toLowerCase().includes(searchTerm.toLowerCase()) ||
-        m.address.toLowerCase().includes(searchTerm.toLowerCase());
+        !lower ||
+        m.name.toLowerCase().includes(lower) ||
+        m.phone.includes(lower) ||
+        m.email.toLowerCase().includes(lower) ||
+        m.address.toLowerCase().includes(lower) ||
+        (m.neighborhood && m.neighborhood.toLowerCase().includes(lower));
 
       const matchesCategory = selectedCategory === 'Todos' || m.category === selectedCategory;
       const matchesStatus =
         selectedStatus === 'Todos' ||
         (selectedStatus === 'Activos' && m.active) ||
         (selectedStatus === 'Inactivos' && !m.active);
+      const matchesNeighborhood =
+        selectedNeighborhood === 'Todos' ||
+        (selectedNeighborhood === 'Sin Barrio' && (!m.neighborhood || !m.neighborhood.trim())) ||
+        (m.neighborhood && m.neighborhood.trim().toLowerCase() === selectedNeighborhood.toLowerCase());
 
-      return matchesSearch && matchesCategory && matchesStatus;
+      return matchesSearch && matchesCategory && matchesStatus && matchesNeighborhood;
     });
-  }, [members, searchTerm, selectedCategory, selectedStatus]);
+  }, [members, searchTerm, selectedCategory, selectedStatus, selectedNeighborhood]);
 
   const handleDelete = (member: Member) => {
     const confirmed = window.confirm(
@@ -230,27 +249,28 @@ export default function MemberList({
         </div>
       </div>
 
-      {/* Buscador y filtros */}
-      <div className="p-4 bg-slate-50/50 border-b border-slate-50 grid grid-cols-1 md:grid-cols-4 gap-3">
+      {/* Buscador y filtros con soporte para Barrio */}
+      <div className="p-4 bg-slate-50/50 border-b border-slate-100 grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-2.5">
         {/* Input de búsqueda */}
-        <div className="relative md:col-span-2">
+        <div className="relative sm:col-span-2 lg:col-span-2">
           <Search className="w-4 h-4 text-slate-400 absolute left-3 top-1/2 -translate-y-1/2" />
           <input
             type="text"
             value={searchTerm}
             onChange={(e) => setSearchTerm(e.target.value)}
-            placeholder="Buscar por nombre, celular, correo o dirección..."
-            className="w-full text-xs pl-9 pr-4 py-2.5 bg-white border border-slate-200 rounded-lg text-slate-700 outline-none focus:ring-2 focus:ring-emerald-500 transition-all"
+            placeholder="Buscar por nombre, barrio, dirección o celular..."
+            className="w-full text-xs pl-9 pr-4 py-2.5 bg-white border border-slate-200 rounded-xl text-slate-700 outline-none focus:ring-2 focus:ring-emerald-500 transition-all font-medium"
           />
         </div>
 
         {/* Filtro de Categoría */}
-        <div className="flex items-center gap-1.5 bg-white border border-slate-200 rounded-lg px-2.5 py-1">
-          <Filter className="w-3.5 h-3.5 text-slate-400" />
+        <div className="flex items-center gap-1.5 bg-white border border-slate-200 rounded-xl px-2.5 py-1">
+          <Filter className="w-3.5 h-3.5 text-slate-400 shrink-0" />
           <select
             value={selectedCategory}
             onChange={(e) => setSelectedCategory(e.target.value)}
-            className="w-full text-xs bg-transparent text-slate-600 font-medium outline-none border-none py-1 cursor-pointer"
+            className="w-full text-xs bg-transparent text-slate-600 font-medium outline-none border-none py-1.5 cursor-pointer"
+            title="Filtrar por grupo / categoría"
           >
             <option value="Todos">Todas las categorías</option>
             <option value="Hombres">Hombres</option>
@@ -260,13 +280,33 @@ export default function MemberList({
           </select>
         </div>
 
+        {/* Filtro por Barrio */}
+        <div className="flex items-center gap-1.5 bg-white border border-slate-200 rounded-xl px-2.5 py-1">
+          <Building2 className="w-3.5 h-3.5 text-emerald-600 shrink-0" />
+          <select
+            value={selectedNeighborhood}
+            onChange={(e) => setSelectedNeighborhood(e.target.value)}
+            className="w-full text-xs bg-transparent text-slate-600 font-medium outline-none border-none py-1.5 cursor-pointer"
+            title="Filtrar por barrio / sector"
+          >
+            <option value="Todos">Todos los barrios ({availableNeighborhoods.length})</option>
+            {availableNeighborhoods.map((b) => (
+              <option key={b} value={b}>
+                Barrio {b}
+              </option>
+            ))}
+            <option value="Sin Barrio">⚠️ Sin barrio asignado</option>
+          </select>
+        </div>
+
         {/* Filtro de Estado */}
-        <div className="flex items-center gap-1.5 bg-white border border-slate-200 rounded-lg px-2.5 py-1">
-          <CheckCircle className="w-3.5 h-3.5 text-slate-400" />
+        <div className="flex items-center gap-1.5 bg-white border border-slate-200 rounded-xl px-2.5 py-1">
+          <CheckCircle className="w-3.5 h-3.5 text-slate-400 shrink-0" />
           <select
             value={selectedStatus}
             onChange={(e) => setSelectedStatus(e.target.value)}
-            className="w-full text-xs bg-transparent text-slate-600 font-medium outline-none border-none py-1 cursor-pointer"
+            className="w-full text-xs bg-transparent text-slate-600 font-medium outline-none border-none py-1.5 cursor-pointer"
+            title="Filtrar por estado activo o inactivo"
           >
             <option value="Todos">Todos los estados</option>
             <option value="Activos">Solo Activos</option>
@@ -305,29 +345,88 @@ export default function MemberList({
                     }`}
                   >
                     {/* Información Personal */}
-                    <td className="py-4 px-6 max-w-[280px]">
-                      <div className="font-semibold text-slate-800 text-sm mb-1">{member.name}</div>
-                      <div className="space-y-1 text-[11px] text-slate-500">
-                        {member.phone && (
-                          <div className="flex items-center gap-1.5 font-medium">
-                            <Phone className="w-3.5 h-3.5 text-slate-400" />
+                    <td className="py-4 px-6 max-w-[320px]">
+                      <div className="flex items-center gap-1.5 mb-1 group">
+                        {!readOnly ? (
+                          <button
+                            type="button"
+                            onClick={() => onEditMember(member)}
+                            className="font-bold text-slate-800 hover:text-emerald-700 text-sm flex items-center gap-1.5 text-left transition-colors cursor-pointer group-hover:underline"
+                            title={`Haga clic para modificar el nombre o datos de ${member.name}`}
+                          >
+                            <span>{member.name}</span>
+                            <Edit className="w-3.5 h-3.5 text-slate-400 group-hover:text-emerald-600 transition-colors opacity-70 group-hover:opacity-100" />
+                          </button>
+                        ) : (
+                          <span className="font-bold text-slate-800 text-sm">{member.name}</span>
+                        )}
+                      </div>
+                      
+                      <div className="space-y-1.5 text-[11px] text-slate-500">
+                        {/* Teléfono / Celular */}
+                        {member.phone ? (
+                          <div className="flex items-center gap-1.5 font-medium text-slate-700">
+                            <Phone className="w-3.5 h-3.5 text-slate-400 shrink-0" />
                             <span>{member.phone}</span>
                           </div>
-                        )}
-                        {member.email && (
+                        ) : !readOnly ? (
+                          <button
+                            type="button"
+                            onClick={() => onEditMember(member)}
+                            className="flex items-center gap-1 text-[10px] text-amber-700 hover:text-amber-800 bg-amber-50 hover:bg-amber-100 px-1.5 py-0.5 rounded border border-amber-200 cursor-pointer w-fit"
+                            title="Completar número telefónico"
+                          >
+                            <Phone className="w-3 h-3 text-amber-500" />
+                            <span>+ Agregar celular</span>
+                          </button>
+                        ) : null}
+
+                        {/* Correo Electrónico */}
+                        {member.email ? (
                           <div className="flex items-center gap-1.5">
-                            <Mail className="w-3.5 h-3.5 text-slate-400" />
+                            <Mail className="w-3.5 h-3.5 text-slate-400 shrink-0" />
                             <span className="truncate">{member.email}</span>
                           </div>
-                        )}
-                        {member.address && (
+                        ) : null}
+
+                        {/* Dirección Residencial */}
+                        {member.address ? (
                           <div className="flex items-center gap-1.5">
-                            <MapPin className="w-3.5 h-3.5 text-slate-400" />
+                            <MapPin className="w-3.5 h-3.5 text-slate-400 shrink-0" />
                             <span className="truncate">{member.address}</span>
                           </div>
-                        )}
+                        ) : !readOnly ? (
+                          <button
+                            type="button"
+                            onClick={() => onEditMember(member)}
+                            className="flex items-center gap-1 text-[10px] text-slate-500 hover:text-emerald-700 hover:bg-slate-100 px-1.5 py-0.5 rounded border border-dashed border-slate-200 cursor-pointer w-fit"
+                            title="Completar dirección de residencia"
+                          >
+                            <MapPin className="w-3 h-3 text-slate-400" />
+                            <span>+ Agregar dirección</span>
+                          </button>
+                        ) : null}
+
+                        {/* Barrio (Casilla solicitada después de la dirección) */}
+                        {member.neighborhood ? (
+                          <div className="flex items-center gap-1.5 font-semibold text-emerald-800 bg-emerald-50/90 border border-emerald-200/70 px-2 py-0.5 rounded-md w-fit">
+                            <Building2 className="w-3.5 h-3.5 text-emerald-600 shrink-0" />
+                            <span>Barrio: <strong className="font-bold text-emerald-900">{member.neighborhood}</strong></span>
+                          </div>
+                        ) : !readOnly ? (
+                          <button
+                            type="button"
+                            onClick={() => onEditMember(member)}
+                            className="flex items-center gap-1 text-[10px] text-emerald-700 hover:text-emerald-800 hover:bg-emerald-50 px-1.5 py-0.5 rounded border border-dashed border-emerald-300 cursor-pointer w-fit"
+                            title="Completar barrio de residencia"
+                          >
+                            <Building2 className="w-3 h-3 text-emerald-500" />
+                            <span>+ Asignar barrio</span>
+                          </button>
+                        ) : null}
+
                         <div className="flex items-center gap-1.5 text-[10px] text-slate-400 pt-0.5">
-                          <Calendar className="w-3 h-3 text-slate-300" />
+                          <Calendar className="w-3 h-3 text-slate-300 shrink-0" />
                           <span>Registrado: {member.createdAt}</span>
                         </div>
                       </div>
@@ -412,18 +511,19 @@ export default function MemberList({
                       {readOnly ? (
                         <span className="text-[10px] text-slate-400 italic">Consulta</span>
                       ) : (
-                        <div className="flex justify-end gap-1.5">
+                        <div className="flex items-center justify-end gap-1.5">
                           <button
                             onClick={() => onEditMember(member)}
-                            className="p-1.5 hover:bg-slate-100 text-slate-500 hover:text-emerald-600 rounded-lg transition-colors cursor-pointer"
-                            title="Editar datos personales"
+                            className="inline-flex items-center gap-1 px-2.5 py-1.5 bg-emerald-50 hover:bg-emerald-100 text-emerald-800 font-bold rounded-lg border border-emerald-200 transition-colors text-xs cursor-pointer shadow-2xs"
+                            title={`Modificar nombre, barrio o completar datos de ${member.name}`}
                           >
-                            <Edit className="w-4 h-4" />
+                            <Edit className="w-3.5 h-3.5 text-emerald-600" />
+                            <span>Modificar</span>
                           </button>
                           <button
                             onClick={() => handleDelete(member)}
-                            className="p-1.5 hover:bg-rose-50 text-slate-400 hover:text-rose-600 rounded-lg transition-colors cursor-pointer"
-                            title="Eliminar registro"
+                            className="p-1.5 hover:bg-rose-50 text-slate-400 hover:text-rose-600 rounded-lg transition-colors cursor-pointer border border-transparent hover:border-rose-100"
+                            title={`Eliminar a ${member.name} del directorio`}
                           >
                             <Trash2 className="w-4 h-4" />
                           </button>

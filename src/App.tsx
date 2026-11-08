@@ -80,16 +80,16 @@ import {
 
 // Datos de demostración iniciales de Miembros
 const DEFAULT_MEMBERS: Member[] = [
-  { id: 'm1', name: 'Juan Carlos Pérez', phone: '3001234567', email: 'juan.perez@email.com', address: 'Calle 10 # 5-20', category: 'Hombres', active: true, createdAt: '2026-05-10' },
-  { id: 'm2', name: 'Carlos Mario Mendoza', phone: '3124567890', email: 'carlos.mendo@email.com', address: 'Av. El Dorado # 45-12', category: 'Hombres', active: true, createdAt: '2026-05-12' },
-  { id: 'm3', name: 'David Santiago Lozano', phone: '3157891234', email: 'david.loza@email.com', address: 'Calle 80 # 24-50', category: 'Hombres', active: true, createdAt: '2026-05-15' },
-  { id: 'm4', name: 'María Camila Delgado', phone: '3209876543', email: 'maria.delg@email.com', address: 'Carrera 15 # 100-30', category: 'Mujeres', active: true, createdAt: '2026-05-15' },
-  { id: 'm5', name: 'Sofía Valentina Restrepo', phone: '3116543210', email: 'sofia.restre@email.com', address: 'Transversal 5 # 8-15', category: 'Mujeres', active: true, createdAt: '2026-05-18' },
-  { id: 'm6', name: 'Elizabeth Ortiz', phone: '3183210987', email: 'elizabeth.o@email.com', address: 'Calle 50 # 13-24', category: 'Mujeres', active: true, createdAt: '2026-05-20' },
-  { id: 'm7', name: 'Mateo Alejandro Delgado', phone: '3109876543', email: 'mateo.delg@email.com', address: 'Carrera 15 # 100-30', category: 'Niños', active: true, createdAt: '2026-05-15' },
-  { id: 'm8', name: 'Santiago Restrepo', phone: '3116543210', email: '', address: 'Transversal 5 # 8-15', category: 'Niños', active: true, createdAt: '2026-05-18' },
-  { id: 'm9', name: 'Luciana Pérez Ortiz', phone: '3001234567', email: '', address: 'Calle 10 # 5-20', category: 'Niñas', active: true, createdAt: '2026-05-10' },
-  { id: 'm10', name: 'Valentina Mendoza Delgado', phone: '3124567890', email: '', address: 'Av. El Dorado # 45-12', category: 'Niñas', active: true, createdAt: '2026-05-12' },
+  { id: 'm1', name: 'Juan Carlos Pérez', phone: '3001234567', email: 'juan.perez@email.com', address: 'Calle 10 # 5-20', neighborhood: 'Centro', category: 'Hombres', active: true, createdAt: '2026-05-10' },
+  { id: 'm2', name: 'Carlos Mario Mendoza', phone: '3124567890', email: 'carlos.mendo@email.com', address: 'Av. El Dorado # 45-12', neighborhood: 'El Salitre', category: 'Hombres', active: true, createdAt: '2026-05-12' },
+  { id: 'm3', name: 'David Santiago Lozano', phone: '3157891234', email: 'david.loza@email.com', address: 'Calle 80 # 24-50', neighborhood: 'Pontevedra', category: 'Hombres', active: true, createdAt: '2026-05-15' },
+  { id: 'm4', name: 'María Camila Delgado', phone: '3209876543', email: 'maria.delg@email.com', address: 'Carrera 15 # 100-30', neighborhood: 'Chicó Norte', category: 'Mujeres', active: true, createdAt: '2026-05-15' },
+  { id: 'm5', name: 'Sofía Valentina Restrepo', phone: '3116543210', email: 'sofia.restre@email.com', address: 'Transversal 5 # 8-15', neighborhood: 'La Candelaria', category: 'Mujeres', active: true, createdAt: '2026-05-18' },
+  { id: 'm6', name: 'Elizabeth Ortiz', phone: '3183210987', email: 'elizabeth.o@email.com', address: 'Calle 50 # 13-24', neighborhood: 'Chapinero', category: 'Mujeres', active: true, createdAt: '2026-05-20' },
+  { id: 'm7', name: 'Mateo Alejandro Delgado', phone: '3109876543', email: 'mateo.delg@email.com', address: 'Carrera 15 # 100-30', neighborhood: 'Chicó Norte', category: 'Niños', active: true, createdAt: '2026-05-15' },
+  { id: 'm8', name: 'Santiago Restrepo', phone: '3116543210', email: '', address: 'Transversal 5 # 8-15', neighborhood: 'La Candelaria', category: 'Niños', active: true, createdAt: '2026-05-18' },
+  { id: 'm9', name: 'Luciana Pérez Ortiz', phone: '3001234567', email: '', address: 'Calle 10 # 5-20', neighborhood: 'Centro', category: 'Niñas', active: true, createdAt: '2026-05-10' },
+  { id: 'm10', name: 'Valentina Mendoza Delgado', phone: '3124567890', email: '', address: 'Av. El Dorado # 45-12', neighborhood: 'El Salitre', category: 'Niñas', active: true, createdAt: '2026-05-12' },
 ];
 
 const DEFAULT_ATTENDANCE: AttendanceRecord[] = [
@@ -671,6 +671,7 @@ export default function App() {
         phone: memberData.phone,
         email: memberData.email,
         address: memberData.address,
+        neighborhood: memberData.neighborhood || '',
         category: memberData.category,
         active: memberData.active,
         createdAt: members.find((m) => m.id === memberData.id)?.createdAt || new Date().toISOString().split('T')[0],
@@ -683,6 +684,7 @@ export default function App() {
         phone: memberData.phone,
         email: memberData.email,
         address: memberData.address,
+        neighborhood: memberData.neighborhood || '',
         category: memberData.category,
         active: memberData.active,
         createdAt: new Date().toISOString().split('T')[0],

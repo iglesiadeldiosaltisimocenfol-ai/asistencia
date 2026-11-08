@@ -11,6 +11,7 @@ export interface Member {
   phone: string;
   email: string;
   address: string;
+  neighborhood?: string; // Barrio donde reside el miembro (casilla solicitada después de la dirección)
   category: MemberCategory;
   active: boolean;
   createdAt: string;

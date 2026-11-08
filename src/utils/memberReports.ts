@@ -38,7 +38,8 @@ function getFilteredMembers(options: MemberReportOptions): Member[] {
       m.name.toLowerCase().includes(lowerSearch) ||
       m.phone.includes(lowerSearch) ||
       m.email.toLowerCase().includes(lowerSearch) ||
-      m.address.toLowerCase().includes(lowerSearch);
+      m.address.toLowerCase().includes(lowerSearch) ||
+      Boolean(m.neighborhood && m.neighborhood.toLowerCase().includes(lowerSearch));
 
     return matchesCategory && matchesStatus && matchesSearch;
   }).sort((a, b) => a.name.localeCompare(b.name));
@@ -196,13 +197,17 @@ export async function exportMembersToPdf(options: MemberReportOptions): Promise<
       ? `${stats.attendedMonth}/${stats.totalMonthSundays} domingos`
       : `${stats.totalHistorical} asistencias`;
 
+    const addressDisplay = m.address
+      ? (m.neighborhood ? `${m.address} (B/ ${m.neighborhood})` : m.address)
+      : (m.neighborhood ? `B/ ${m.neighborhood}` : 'Sin registrar');
+
     return [
       (idx + 1).toString(),
       m.name,
       m.category,
       m.phone || 'Sin registrar',
       m.email || 'Sin registrar',
-      m.address || 'Sin registrar',
+      addressDisplay,
       asistenciasMes,
       m.active ? 'Activo' : 'Inactivo',
     ];
@@ -216,7 +221,7 @@ export async function exportMembersToPdf(options: MemberReportOptions): Promise<
       'Categoría',
       'Teléfono / Celular',
       'Correo Electrónico',
-      'Dirección / Residencia',
+      'Dirección / Barrio',
       'Asistencia Mes',
       'Estado',
     ]],
@@ -398,6 +403,7 @@ export async function exportMembersToExcel(options: MemberReportOptions): Promis
     'Teléfono / Celular',
     'Correo Electrónico',
     'Dirección de Residencia',
+    'Barrio',
     'Asistencias Mes',
     'Total Asistencias',
     'Estado',
@@ -435,6 +441,7 @@ export async function exportMembersToExcel(options: MemberReportOptions): Promis
   worksheet.getCell('B9').alignment = { vertical: 'middle', horizontal: 'left' };
   worksheet.getCell('E9').alignment = { vertical: 'middle', horizontal: 'left' };
   worksheet.getCell('F9').alignment = { vertical: 'middle', horizontal: 'left' };
+  worksheet.getCell('G9').alignment = { vertical: 'middle', horizontal: 'left' };
 
   // 5. Filas de datos
   let currentRow = 10;
@@ -452,6 +459,7 @@ export async function exportMembersToExcel(options: MemberReportOptions): Promis
       m.phone || '',
       m.email || '',
       m.address || '',
+      m.neighborhood || '',
       asistenciasMesStr,
       stats.totalHistorical,
       m.active ? 'Activo' : 'Inactivo',
@@ -477,14 +485,14 @@ export async function exportMembersToExcel(options: MemberReportOptions): Promis
         right: { style: 'thin', color: { argb: 'FFE2E8F0' } },
       };
 
-      if (colNumber === 1 || colNumber === 3 || colNumber === 4 || colNumber === 7 || colNumber === 8 || colNumber === 9 || colNumber === 10) {
+      if (colNumber === 1 || colNumber === 3 || colNumber === 4 || colNumber === 8 || colNumber === 9 || colNumber === 10 || colNumber === 11) {
         cell.alignment = { vertical: 'middle', horizontal: 'center' };
       } else {
         cell.alignment = { vertical: 'middle', horizontal: 'left' };
       }
 
       // Estilo para Estado
-      if (colNumber === 9) {
+      if (colNumber === 10) {
         if (m.active) {
           cell.font = { name: 'Calibri', size: 10, bold: true, color: { argb: 'FF047857' } };
         } else {
@@ -499,7 +507,7 @@ export async function exportMembersToExcel(options: MemberReportOptions): Promis
   // Habilitar autofiltro en la tabla
   worksheet.autoFilter = {
     from: 'A9',
-    to: `J${currentRow - 1}`,
+    to: `K${currentRow - 1}`,
   };
 
   // 6. Ancho de columnas
@@ -509,10 +517,11 @@ export async function exportMembersToExcel(options: MemberReportOptions): Promis
   worksheet.getColumn(4).width = 18;  // Teléfono
   worksheet.getColumn(5).width = 30;  // Email
   worksheet.getColumn(6).width = 32;  // Dirección
-  worksheet.getColumn(7).width = 24;  // Asistencias Mes
-  worksheet.getColumn(8).width = 18;  // Total Asistencias
-  worksheet.getColumn(9).width = 14;  // Estado
-  worksheet.getColumn(10).width = 16; // Fecha Registro
+  worksheet.getColumn(7).width = 22;  // Barrio
+  worksheet.getColumn(8).width = 24;  // Asistencias Mes
+  worksheet.getColumn(9).width = 18;  // Total Asistencias
+  worksheet.getColumn(10).width = 14; // Estado
+  worksheet.getColumn(11).width = 16; // Fecha Registro
 
   // 7. Descargar archivo en el navegador
   const buffer = await workbook.xlsx.writeBuffer();
