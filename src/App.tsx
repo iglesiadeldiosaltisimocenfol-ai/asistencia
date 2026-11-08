@@ -51,6 +51,7 @@ import LoginModal from './components/LoginModal';
 import LoginPortal from './components/LoginPortal';
 import CenfolLogo from './components/CenfolLogo';
 import HtmlExportModal from './components/HtmlExportModal';
+import BackupRestoreModal from './components/BackupRestoreModal';
 import { useInactivityTimeout } from './hooks/useInactivityTimeout';
 import {
   saveMemberToDb,
@@ -58,7 +59,8 @@ import {
   saveAttendanceToDb,
   saveTreasuryToDb,
   deleteTreasuryFromDb,
-  seedDatabaseIfEmpty
+  seedDatabaseIfEmpty,
+  restoreDataToDb
 } from './services/apiService';
 
 import { 
@@ -83,7 +85,9 @@ import {
   ShieldAlert,
   FileSpreadsheet,
   ExternalLink,
-  Code2
+  Code2,
+  Download,
+  UploadCloud
 } from 'lucide-react';
 
 // Datos de demostración iniciales de Miembros
@@ -180,6 +184,7 @@ export default function App() {
   });
   const [isLoginModalOpen, setIsLoginModalOpen] = useState(false);
   const [isHtmlModalOpen, setIsHtmlModalOpen] = useState(false);
+  const [isBackupModalOpen, setIsBackupModalOpen] = useState(false);
 
   // Rol activo actual y simulador de roles
   const [currentRole, setCurrentRole] = useState<AppRole>(() => {
@@ -666,6 +671,86 @@ export default function App() {
       if (!confirmed) return;
     }
     await handleQuickSaveToSheets();
+  };
+
+  // Restaurar Copia de Seguridad Completa (Miembros, Asistencias, Tesorería, Usuarios)
+  const handleRestoreBackup = async (payload: {
+    members: Member[];
+    attendance: AttendanceRecord[];
+    treasury: FinancialRecord[];
+    users?: AppUser[];
+    mode: 'merge' | 'replace';
+  }) => {
+    let finalMembers: Member[];
+    let finalAttendance: AttendanceRecord[];
+    let finalTreasury: FinancialRecord[];
+    let finalUsers: AppUser[];
+
+    if (payload.mode === 'replace') {
+      finalMembers = payload.members.length > 0 ? payload.members : members;
+      finalAttendance = payload.attendance.length > 0 ? payload.attendance : attendance;
+      finalTreasury = payload.treasury.length > 0 ? payload.treasury : financialRecords;
+      finalUsers = (payload.users && payload.users.length > 0) ? payload.users : users;
+    } else {
+      // Combinar (Merge): Actualizar existentes por ID y agregar nuevos
+      const memberMap = new Map<string, Member>();
+      members.forEach((m) => memberMap.set(m.id, m));
+      payload.members.forEach((m) => memberMap.set(m.id, m));
+      finalMembers = Array.from(memberMap.values());
+
+      const attMap = new Map<string, AttendanceRecord>();
+      attendance.forEach((a) => attMap.set(a.date, a));
+      payload.attendance.forEach((a) => attMap.set(a.date, a));
+      finalAttendance = Array.from(attMap.values());
+
+      const trMap = new Map<string, FinancialRecord>();
+      financialRecords.forEach((t) => trMap.set(t.id, t));
+      payload.treasury.forEach((t) => trMap.set(t.id, t));
+      finalTreasury = Array.from(trMap.values());
+
+      const uMap = new Map<string, AppUser>();
+      users.forEach((u) => uMap.set(u.id, u));
+      (payload.users || []).forEach((u) => uMap.set(u.id, u));
+      finalUsers = Array.from(uMap.values());
+    }
+
+    // 1. Actualizar estado local en React
+    setMembers(finalMembers);
+    setAttendance(finalAttendance);
+    setFinancialRecords(finalTreasury);
+    setUsers(finalUsers);
+
+    // 2. Guardar en localStorage para disponibilidad inmediata
+    localStorage.setItem('asistencia_dominical_members', JSON.stringify(finalMembers));
+    localStorage.setItem('asistencia_dominical_attendance', JSON.stringify(finalAttendance));
+    localStorage.setItem('asistencia_dominical_treasury', JSON.stringify(finalTreasury));
+    localStorage.setItem('asistencia_dominical_users', JSON.stringify(finalUsers));
+
+    // 3. Sincronizar en la base de datos PostgreSQL
+    await restoreDataToDb({
+      members: finalMembers,
+      attendance: finalAttendance,
+      treasury: finalTreasury,
+    });
+
+    // 4. Sincronizar en tiempo real en Firestore para todos los dispositivos
+    await saveStateAndSync(finalMembers, finalAttendance, finalTreasury, finalUsers);
+
+    // 5. Si Google Sheets está conectado, sincronizar en Google Sheets
+    const currentSheetId = getSavedSpreadsheetId();
+    if (currentSheetId && accessToken) {
+      try {
+        await syncMembersToSheets(currentSheetId, accessToken, finalMembers);
+        await syncAttendanceToSheets(currentSheetId, accessToken, finalAttendance);
+        await syncTreasuryToSheets(currentSheetId, accessToken, finalTreasury);
+        await syncUsersToSheets(currentSheetId, accessToken, finalUsers);
+      } catch (e) {
+        console.warn('Advertencia al sincronizar Sheets tras restauración:', e);
+      }
+    }
+
+    setSyncSuccess('¡Copia de seguridad restaurada y sincronizada en PostgreSQL, Firestore y Google Sheets!');
+    setTimeout(() => setSyncSuccess(null), 5000);
   };
 
   // --- CRUD MIEMBROS ---
@@ -1199,6 +1284,17 @@ export default function App() {
             {/* Estado de Sesión y Botón Cerrar / Iniciar Sesión */}
             {activeSessionUser && (
               <div className="flex items-center gap-2">
+                {/* Botón directo de Copia de Seguridad y Restauración */}
+                <button
+                  onClick={() => setIsBackupModalOpen(true)}
+                  className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-emerald-800 hover:bg-emerald-700 active:bg-emerald-900 text-white font-bold text-xs rounded-xl shadow-xs transition-all cursor-pointer border border-emerald-500/60"
+                  title="Descargar copia de seguridad en JSON o subir archivo para restaurar registros"
+                >
+                  <Database className="w-3.5 h-3.5 text-emerald-200" />
+                  <span className="hidden xl:inline">Copia & Restaurar</span>
+                  <span className="xl:hidden">Copia</span>
+                </button>
+
                 {/* Botón directo Guardar en Google Sheets */}
                 <button
                   onClick={handleQuickSaveToSheets}
@@ -1389,6 +1485,7 @@ export default function App() {
                 userRole={ROLE_INFO[currentRole].label}
                 onSaveToSheets={handleQuickSaveToSheets}
                 isSyncingSheets={isSyncing}
+                onOpenBackupModal={() => setIsBackupModalOpen(true)}
               />
             )}
           </div>
@@ -1539,6 +1636,18 @@ export default function App() {
       <HtmlExportModal
         isOpen={isHtmlModalOpen}
         onClose={() => setIsHtmlModalOpen(false)}
+      />
+
+      {/* Modal de Copia de Seguridad y Restauración */}
+      <BackupRestoreModal
+        isOpen={isBackupModalOpen}
+        onClose={() => setIsBackupModalOpen(false)}
+        members={members}
+        attendance={attendance}
+        financialRecords={financialRecords}
+        users={users}
+        currentUserName={activeSessionUser?.name || user?.displayName || 'Pastor Administrador'}
+        onRestore={handleRestoreBackup}
       />
     </div>
   );

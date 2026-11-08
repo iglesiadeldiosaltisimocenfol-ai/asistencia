@@ -141,3 +141,24 @@ export async function fetchTreasuryFromDb(): Promise<FinancialRecord[] | null> {
     return null;
   }
 }
+
+/**
+ * Restaura en lote miembros, asistencias y tesorería en la base de datos PostgreSQL
+ */
+export async function restoreDataToDb(payload: {
+  members?: Member[];
+  attendance?: AttendanceRecord[];
+  treasury?: FinancialRecord[];
+}): Promise<boolean> {
+  try {
+    const res = await fetch('/api/restore', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(payload),
+    });
+    return res.ok;
+  } catch (err) {
+    console.warn('Error al restaurar datos en base de datos PostgreSQL:', err);
+    return false;
+  }
+}

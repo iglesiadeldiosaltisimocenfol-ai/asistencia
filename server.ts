@@ -136,6 +136,57 @@ app.delete('/api/treasury/:id', async (req, res) => {
 });
 
 // ==========================================
+// RUTA DE RESTAURACIÓN / IMPORTACIÓN COMPLETA
+// ==========================================
+app.post('/api/restore', async (req, res) => {
+  try {
+    const { members: newMembers, attendance: newAttendance, treasury: newTreasury } = req.body;
+    let membersCount = 0;
+    let attendanceCount = 0;
+    let treasuryCount = 0;
+
+    if (Array.isArray(newMembers)) {
+      for (const m of newMembers) {
+        if (m && m.name) {
+          await dbQueries.upsertMemberInDb(m);
+          membersCount++;
+        }
+      }
+    }
+
+    if (Array.isArray(newAttendance)) {
+      for (const a of newAttendance) {
+        if (a && a.date) {
+          await dbQueries.upsertAttendanceInDb(a);
+          attendanceCount++;
+        }
+      }
+    }
+
+    if (Array.isArray(newTreasury)) {
+      for (const t of newTreasury) {
+        if (t && t.id && t.date) {
+          await dbQueries.upsertFinancialRecordInDb(t);
+          treasuryCount++;
+        }
+      }
+    }
+
+    res.json({
+      success: true,
+      restored: {
+        members: membersCount,
+        attendance: attendanceCount,
+        treasury: treasuryCount,
+      },
+    });
+  } catch (err: any) {
+    console.error('Error in POST /api/restore:', err);
+    res.status(500).json({ error: err.message || 'Error al restaurar datos en la base de datos' });
+  }
+});
+
+// ==========================================
 // VITE DEV SERVER / ARCHIVOS ESTÁTICOS
 // ==========================================
 

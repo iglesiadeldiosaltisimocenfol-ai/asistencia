@@ -5,7 +5,7 @@
 
 import React, { useState, useMemo } from 'react';
 import { Member, AttendanceRecord, MemberCategory } from '../types';
-import { Search, Filter, Edit, Trash2, CheckCircle, XCircle, AlertTriangle, UserPlus, Phone, MapPin, Mail, Calendar, FileText, Table, Download, FileSpreadsheet, Building2, Plus } from 'lucide-react';
+import { Search, Filter, Edit, Trash2, CheckCircle, XCircle, AlertTriangle, UserPlus, Phone, MapPin, Mail, Calendar, FileText, Table, Download, FileSpreadsheet, Building2, Plus, Database } from 'lucide-react';
 import ReportExportModal from './ReportExportModal';
 import { exportMembersToPdf, exportMembersToExcel } from '../utils/memberReports';
 
@@ -21,6 +21,7 @@ interface MemberListProps {
   userRole?: string;
   onSaveToSheets?: () => Promise<void> | void;
   isSyncingSheets?: boolean;
+  onOpenBackupModal?: () => void;
 }
 
 export default function MemberList({
@@ -35,6 +36,7 @@ export default function MemberList({
   userRole = 'Administrador',
   onSaveToSheets,
   isSyncingSheets = false,
+  onOpenBackupModal,
 }: MemberListProps) {
   const [searchTerm, setSearchTerm] = useState('');
   const [selectedCategory, setSelectedCategory] = useState<string>('Todos');
@@ -236,6 +238,17 @@ export default function MemberList({
               <span className="hidden md:inline">Opciones</span>
             </button>
           </div>
+
+          {onOpenBackupModal && !readOnly && (
+            <button
+              onClick={onOpenBackupModal}
+              className="inline-flex items-center gap-1.5 px-3 py-2 bg-slate-100 hover:bg-slate-200 text-slate-700 text-xs font-bold rounded-lg transition-colors cursor-pointer border border-slate-200"
+              title="Descargar copia de seguridad o restaurar datos de la congregación"
+            >
+              <Database className="w-3.5 h-3.5 text-emerald-600" />
+              <span className="hidden sm:inline">Copia / Restaurar</span>
+            </button>
+          )}
 
           {!readOnly && (
             <button
